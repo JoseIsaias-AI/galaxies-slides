@@ -909,6 +909,93 @@
         .takeaways p { font-size: 23px; color: var(--muted); margin-top: 12px; line-height: 1.4; }
 
         /* ===========================================
+           S16 — CONTATO
+           =========================================== */
+        .s-contact {
+            background: var(--bg);
+        }
+        .s-contact .content {
+            top: 106px;
+            bottom: 80px;
+            color: var(--ink);
+        }
+        .contact-label {
+            font-family: var(--mono);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--blue);
+        }
+        .contact-title {
+            margin-top: 16px;
+            font-size: 220px;
+            font-weight: 700;
+            line-height: 0.94;
+            letter-spacing: -0.065em;
+            color: var(--ink);
+        }
+        .contact-subtitle {
+            margin-top: 20px;
+            font-size: 36px;
+            color: var(--muted);
+        }
+        .contact-options {
+            display: flex;
+            align-items: flex-start;
+            gap: 72px;
+            margin-top: 48px;
+        }
+        .contact-option {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            color: var(--ink);
+        }
+        .contact-qr {
+            display: block;
+            width: 272px;
+            height: 272px;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 16px 42px rgba(17, 24, 39, 0.12);
+        }
+        .contact-qr img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+        }
+        .contact-copy h3 {
+            font-size: 42px;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+        .contact-copy a {
+            display: block;
+            max-width: 390px;
+            margin-top: 12px;
+            font-family: var(--mono);
+            font-size: 22px;
+            line-height: 1.45;
+            color: var(--muted);
+            overflow-wrap: anywhere;
+        }
+        .contact-copy a:hover { color: var(--blue); }
+        .contact-footer {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            font-family: var(--mono);
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--muted-2);
+        }
+
+        /* ===========================================
            S16 — APÊNDICE (perguntas)
            =========================================== */
         .qa { position: absolute; left: 0; right: 0; top: 280px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
@@ -988,7 +1075,7 @@
                 <div class="content center-col">
                     <div class="kicker reveal" style="--d:0"><b>Predictive</b>Camada estatística para personas sintéticas</div>
                     <h1 class="h-display reveal" style="--d:1">Qual criativo merece <span class="grad">receber verba?</span></h1>
-                    <p class="lead reveal" style="--d:2">A persona já explica o que percebe. Agora ela também indica o que testar primeiro, antes de a marca publicar.</p>
+                    <p class="lead reveal" style="--d:2">O ranking prioriza os criativos com maior propensão relativa à viralização.</p>
                     <div class="reels">
                         <div class="reel reveal" style="--d:3"><span class="rank">#3</span><span class="play"></span></div>
                         <div class="reel win reveal" style="--d:4"><span class="rank">#1</span><span class="play"></span></div>
@@ -1106,7 +1193,7 @@
                     </div>
                     <div class="statement reveal" style="--d:12;position:absolute;left:0;bottom:0"><span class="dot"></span>O LLM orquestra e explica. Ele não chuta o número.</div>
                 </div>
-                <aside class="notes">“O fluxo chega à Galaxies por uma tool MCP. O criativo e o contexto do canal entram na tool. O modelo devolve previsão relativa, intervalo, ranking, drivers e avisos. A persona consome esse resultado e conversa com o cliente. O LLM orquestra e explica; ele não chuta o número.”</aside>
+                <aside class="notes">“O fluxo chega à Galaxies por uma tool MCP. O criativo e o contexto do canal entram na tool. O ensemble devolve uma ordenação relativa dos criativos, intervalo, fatores associados e avisos. A persona consome esse resultado e conversa com o cliente. A saída serve para priorizar testes, não para prever uma contagem exata de visualizações.”</aside>
             </section>
 
             <!-- ============ 05 · ARQUITETURA ============ -->
@@ -1193,8 +1280,8 @@
                             <text class="s" x="1280" y="512" text-anchor="middle">um modelo por setor</text>
 
                             <g class="nd" filter="url(#sh)"><rect x="1420" y="290" width="150" height="80" rx="16"/></g>
-                            <text class="s" x="1495" y="322" text-anchor="middle">Previsão de</text>
-                            <text class="t" x="1495" y="350" text-anchor="middle" style="font-size:19px">visualizações</text>
+                            <text class="s" x="1495" y="322" text-anchor="middle">Ranking</text>
+                            <text class="t" x="1495" y="346" text-anchor="middle" style="font-size:16px">de viralização</text>
 
                             <!-- Entrega -->
                             <g class="nd solid" filter="url(#sh)"><rect x="1610" y="228" width="150" height="68" rx="16"/></g>
@@ -1495,9 +1582,9 @@
                             <div class="oitem"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg></div><div><h4>Fatores relevantes</h4><p>o porquê da recomendação</p></div></div>
                         </div>
                     </div>
-                    <p class="quote-strip reveal" style="--d:6">Não diz <s>“este vídeo vai viralizar”</s>. Diz qual versão merece o próximo teste, e por quê.</p>
+                    <p class="quote-strip reveal" style="--d:6">O modelo ordena os criativos pela propensão à viralização. A maior prioridade segue para teste.</p>
                 </div>
-                <aside class="notes">“Aqui a previsão vira uma decisão. Comparamos um criativo A a uma variante B. O MCP valida as entradas, consulta os atributos e devolve a ordem, o intervalo e os fatores relevantes. A saída não diz ‘este vídeo vai viralizar’. Ela diz qual versão deve receber o próximo teste e por quê.”</aside>
+                <aside class="notes">“Aqui o ranking vira uma decisão. Comparamos um criativo A a uma variante B. O MCP valida as entradas, consulta os atributos e devolve a ordem de propensão relativa, o intervalo e os fatores relevantes. A saída não prevê views exatas nem garante viralização. Ela indica qual versão deve receber o próximo teste e por quê.”</aside>
             </section>
 
             <!-- ============ DEMO · A SOLUÇÃO NO AR ============ -->
@@ -1611,6 +1698,40 @@
                     </div>
                 </div>
                 <aside class="notes">“Entregamos uma camada estatística integrada ao ecossistema da Galaxies. Ela transforma a opinião da persona em uma recomendação mensurável, rastreável e testável. O resultado geral já supera a referência, Automotivo mostra um sinal forte, e a arquitetura está pronta para evoluir com dados de cliente.”</aside>
+            </section>
+
+            <!-- ============ CONTATO ============ -->
+            <section class="slide s-contact" data-section="Contato">
+                <div class="content">
+                    <div class="contact-label reveal" style="--d:0">Galaxies Predictive</div>
+                    <h2 class="contact-title reveal" style="--d:1">Obrigado</h2>
+                    <p class="contact-subtitle reveal" style="--d:2">Acesse o projeto e vamos continuar a conversa.</p>
+
+                    <div class="contact-options">
+                        <div class="contact-option reveal" style="--d:3">
+                            <a class="contact-qr" href="https://www.linkedin.com/in/igor-dasilva-rodrigues" target="_blank" rel="noopener noreferrer" aria-label="Abrir LinkedIn de Igor da Silva Rodrigues">
+                                <img src="assets/qr-linkedin.jpeg" alt="QR code para o LinkedIn de Igor da Silva Rodrigues">
+                            </a>
+                            <div class="contact-copy">
+                                <h3>LinkedIn</h3>
+                                <a href="https://www.linkedin.com/in/igor-dasilva-rodrigues" target="_blank" rel="noopener noreferrer">linkedin.com/in/igor-dasilva-rodrigues</a>
+                            </div>
+                        </div>
+
+                        <div class="contact-option reveal" style="--d:4">
+                            <a class="contact-qr" href="https://github.com/igor-rodriguess/case_galaxies/tree/main" target="_blank" rel="noopener noreferrer" aria-label="Abrir repositório Galaxies no GitHub">
+                                <img src="assets/qr-github.jpeg" alt="QR code para o repositório Galaxies no GitHub">
+                            </a>
+                            <div class="contact-copy">
+                                <h3>GitHub</h3>
+                                <a href="https://github.com/igor-rodriguess/case_galaxies/tree/main" target="_blank" rel="noopener noreferrer">github.com/igor-rodriguess/case_galaxies</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="contact-footer reveal" style="--d:5">Obrigado pela atenção</div>
+                </div>
+                <aside class="notes">“Para encerrar, deixo o LinkedIn e o repositório do projeto. Os dois QR codes também são clicáveis no material digital.”</aside>
             </section>
 
         </main>
