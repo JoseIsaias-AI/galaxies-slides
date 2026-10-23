@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxies Predictive</title>
+    <meta name="description" content="Camada estatística integrada às personas sintéticas da Galaxies.">
+    <link rel="icon" type="image/png" href="assets/galaxies-logo.png">
+
+    <!-- Fonts: DM Sans é a fonte da identidade Galaxies; JetBrains Mono para dados/código -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           Paleta extraída de galaxieslabs.com
+           =========================================== */
+        :root {
+            --bg: #F9FAFB;
+            --surface: #FFFFFF;
+            --ink: #111827;
+            --ink-2: #1F2937;
+            --muted: #4B5563;
+            --muted-2: #6B7280;
+            --line: #E5E7EB;
+            --line-2: #D1D5DB;
+            --blue: #0065FF;
+            --blue-2: #0099FF;
+            --blue-soft: #EAF2FF;
+            --pink: #F574FF;
+            --pink-soft: #FDEBFF;
+            --amber: #B45309;
+            --amber-soft: #FEF3C7;
+            --green: #047857;
+            --green-soft: #D1FAE5;
+            --grad: linear-gradient(90deg, #0065FF 0%, #0099FF 45%, #F574FF 100%);
+
+            --stage-bg: #EEF0F3;
+            --slide-bg: var(--bg);
+
+            --font: 'DM Sans', sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+
+            --pad-x: 120px;
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
+            --dur: 0.8s;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ===========================================
+           FIXED 16:9 STAGE (viewport-base.css, completo)
+           =========================================== */
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--stage-bg, #000);
+        }
+
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background: var(--stage-bg, #000);
+        }
+
+        .deck-stage {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            transform-origin: 0 0;
+            background: var(--slide-bg, #fff);
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            display: block;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            background: var(--slide-bg, #fff);
+        }
+
+        .slide.active,
+        .slide.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+        }
+
+        img,
+        video,
+        canvas,
+        svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .deck-controls {
+            position: fixed;
+            left: 50%;
+            bottom: 22px;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        @media print {
+            html,
+            body {
+                width: 1920px;
+                height: auto;
+                overflow: visible;
+                background: #fff;
+            }
+
+            .deck-viewport {
+                position: static;
+                overflow: visible;
+                background: #fff;
+            }
+
+            .deck-stage {
+                position: static;
+                width: auto;
+                height: auto;
+                transform: none !important;
+                background: none;
+            }
+
+            .slide {
+                position: relative;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                width: 1920px;
+                height: 1080px;
+                break-after: page;
+                page-break-after: always;
+            }
+
+            .slide:last-child {
+                break-after: auto;
+                page-break-after: auto;
+            }
+
+            .deck-controls {
+                display: none !important;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+
+        /* ===========================================
+           BASE
+           =========================================== */
+        body {
+            font-family: var(--font);
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .slide {
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        /* Atmosfera: grade de pontos + brilhos azul/rosa da marca */
+        .slide::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, #D9DDE3 1.4px, transparent 1.6px);
+            background-size: 36px 36px;
+            -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 0%, transparent 75%);
+            mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 0%, transparent 75%);
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        .glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            opacity: 0.35;
+        }
+        .glow.blue { background: #6FA8FF; }
+        .glow.pink { background: #F7A6FF; }
+
+        /* ===========================================
+           CHROME (logo, seção, página) — dentro do palco
+           =========================================== */
+        .chrome {
+            position: absolute;
+            left: 0; right: 0; top: 0;
+            height: 120px;
+            padding: 0 var(--pad-x);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .chrome-logo { height: 34px; width: auto; }
+        .chrome-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--muted-2);
+        }
+        .chrome-section { color: var(--muted); }
+        .chrome-page {
+            font-family: var(--mono);
+            font-size: 18px;
+            color: var(--muted-2);
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 6px 16px;
+        }
+
+        .progress {
+            position: absolute;
+            left: 0; bottom: 0;
+            height: 5px;
+            background: var(--grad);
+            z-index: 20;
+            transition: width 0.6s var(--ease);
+        }
+
+        /* ===========================================
+           LAYOUT
+           =========================================== */
+        .content {
+            position: absolute;
+            left: var(--pad-x);
+            right: var(--pad-x);
+            top: 160px;
+            bottom: 100px;
+            z-index: 2;
+        }
+        .center-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .row { display: flex; align-items: center; }
+
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        .kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 22px 8px 8px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            font-size: 21px;
+            font-weight: 500;
+            color: var(--muted);
+            box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+        }
+        .kicker b {
+            background: var(--blue);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 999px;
+        }
+
+        .h-display {
+            font-size: 112px;
+            line-height: 1.02;
+            font-weight: 600;
+            letter-spacing: -0.035em;
+            color: var(--ink);
+        }
+        .h-title {
+            font-size: 76px;
+            line-height: 1.06;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            color: var(--ink);
+        }
+        .lead {
+            font-size: 32px;
+            line-height: 1.42;
+            color: var(--muted);
+            font-weight: 400;
+        }
+        .grad {
+            background: var(--grad);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .mono { font-family: var(--mono); }
+        .eyebrow {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted-2);
+        }
+
+        /* ===========================================
+           COMPONENTS
+           =========================================== */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 18px 48px -18px rgba(17, 24, 39, 0.14);
+        }
+        .card.blue {
+            border-color: rgba(0, 101, 255, 0.45);
+            box-shadow: 0 0 0 6px rgba(0, 101, 255, 0.07), 0 18px 48px -18px rgba(0, 101, 255, 0.35);
+        }
+        .card.dark {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #F9FAFB;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 22px;
+            border-radius: 999px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--ink-2);
+            white-space: nowrap;
+        }
+        .chip.blue { background: var(--blue-soft); border-color: transparent; color: var(--blue); }
+        .chip.dark { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .status.green { background: var(--green-soft); color: var(--green); }
+        .status.blue { background: var(--blue-soft); color: var(--blue); }
+        .status.amber { background: var(--amber-soft); color: var(--amber); }
+
+        .arrow {
+            flex: none;
+            width: 56px;
+            height: 24px;
+            color: var(--line-2);
+        }
+
+        .icon {
+            width: 56px; height: 56px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: var(--blue-soft);
+            color: var(--blue);
+            flex: none;
+        }
+        .icon svg { width: 28px; height: 28px; }
+        .icon.dark { background: var(--ink); color: #fff; }
+        .icon.pink { background: var(--pink-soft); color: #B42BC4; }
+
+        .statement {
+            display: inline-flex;
+            align-items: center;
+            gap: 18px;
+            padding: 22px 36px;
+            border-radius: 999px;
+            background: var(--ink);
+            color: #F9FAFB;
+            font-size: 30px;
+            font-weight: 500;
+        }
+        .statement .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--grad); flex: none; }
+
+        /* ===========================================
+           ANIMATIONS — disparadas por .visible no slide
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+            transition-delay: calc(var(--d, 0) * 110ms + 80ms);
+        }
+        .reveal.scale { transform: scale(0.94); }
+        .reveal.left { transform: translateX(-36px); }
+        .slide.visible .reveal { opacity: 1; transform: none; }
+
+        @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes flow { to { stroke-dashoffset: -40; } }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(0, 101, 255, 0.35); } 50% { box-shadow: 0 0 0 14px rgba(0, 101, 255, 0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===========================================
+           S1 — ABERTURA
+           =========================================== */
+        .s1 .content { top: 190px; }
+        .s1 .h-display { max-width: 1500px; margin-top: 44px; }
+        .s1 .lead { max-width: 1100px; margin-top: 36px; }
+        .reels {
+            display: flex;
+            gap: 28px;
+            margin-top: 64px;
+            align-items: flex-end;
+        }
+        .reel {
+            width: 150px; height: 230px;
+            border-radius: 22px;
+            position: relative;
+            background: linear-gradient(160deg, #F3F4F6, #E5E7EB);
+            border: 1px solid var(--line);
+            overflow: hidden;
+        }
+        .reel::after {
+            content: '';
+            position: absolute;
+            left: 16px; right: 16px; bottom: 18px;
+            height: 10px; border-radius: 6px;
+            background: rgba(17, 24, 39, 0.1);
+            box-shadow: 0 -20px 0 -1px rgba(17, 24, 39, 0.07);
+        }
+        .reel .play {
+            position: absolute; left: 50%; top: 42%;
+            width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.85);
+            transform: translate(-50%, -50%);
+            display: grid; place-items: center;
+        }
+        .reel .play::before {
+            content: ''; margin-left: 4px;
+            border-left: 14px solid var(--muted-2);
+            border-top: 9px solid transparent;
+            border-bottom: 9px solid transparent;
+        }
+        .reel .rank {
+            position: absolute; top: 12px; left: 12px;
+            font-family: var(--mono); font-size: 16px; font-weight: 500;
+            padding: 4px 10px; border-radius: 999px;
+            background: #fff; color: var(--muted);
+        }
+        .reel.win {
+            height: 270px;
+            background: linear-gradient(160deg, #3D8BFF, #0065FF 55%, #B656FF);
+            border-color: transparent;
+            animation: pulse 2.6s ease-in-out infinite 1.6s;
+        }
+        .reel.win .rank { background: var(--ink); color: #fff; }
+        .reel.win .play::before { border-left-color: var(--blue); }
+        .reel.win::after { background: rgba(255, 255, 255, 0.4); box-shadow: 0 -20px 0 -1px rgba(255, 255, 255, 0.25); }
+
+        /* ===========================================
+           S2 — DOR CENTRAL
+           =========================================== */
+        .s2 .h-title { max-width: 1300px; }
+        .duo {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 500px;
+            display: grid;
+            grid-template-columns: 1fr 120px 1fr;
+            align-items: center;
+        }
+        .duo .card { height: 100%; padding: 44px 48px; display: flex; flex-direction: column; }
+        .duo .card-head { display: flex; align-items: center; gap: 18px; margin-bottom: 34px; }
+        .duo .card-head h3 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; }
+        .duo .card-head p { font-size: 20px; color: var(--muted-2); margin-top: 2px; }
+        .duo .mid { display: grid; place-items: center; color: var(--line-2); }
+        .bubble {
+            align-self: flex-start;
+            font-size: 26px;
+            padding: 16px 26px;
+            border-radius: 22px 22px 22px 6px;
+            background: #F3F4F6;
+            color: var(--ink-2);
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 14px;
+        }
+        .bubble i { font-style: normal; font-size: 18px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-2); }
+        .rankrow {
+            display: grid;
+            grid-template-columns: 56px 1fr;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 26px;
+        }
+        .rankrow .n {
+            width: 48px; height: 48px; border-radius: 14px;
+            display: grid; place-items: center;
+            font-family: var(--mono); font-size: 20px; font-weight: 500;
+            border: 2px dashed rgba(0, 101, 255, 0.35); color: var(--blue);
+        }
+        .rankrow .track { position: relative; height: 14px; border-radius: 8px; background: #F3F4F6; }
+        .rankrow .ci {
+            position: absolute; top: 0; height: 100%; border-radius: 8px;
+            border: 2px dashed rgba(0, 101, 255, 0.45); background: rgba(0, 101, 255, 0.06);
+        }
+        .rankrow .pt {
+            position: absolute; top: 50%; width: 22px; height: 22px; border-radius: 50%;
+            background: #fff; border: 3px solid var(--blue); transform: translate(-50%, -50%);
+        }
+        .missing-tag {
+            margin-top: auto;
+            font-size: 22px; color: var(--blue); font-weight: 600;
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        /* ===========================================
+           S3 — A LACUNA (equação)
+           =========================================== */
+        .eq {
+            position: absolute; left: 0; right: 0; bottom: 50px;
+            display: grid;
+            grid-template-columns: 1fr 90px 1fr 90px 1fr;
+            align-items: stretch;
+            height: 400px;
+        }
+        .eq .op {
+            display: grid; place-items: center;
+            font-size: 64px; font-weight: 500; color: var(--line-2);
+        }
+        .eq .card { padding: 48px 44px; display: flex; flex-direction: column; gap: 22px; }
+        .eq h3 { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; }
+        .eq p { font-size: 26px; line-height: 1.45; color: var(--muted); }
+        .eq .card.dark p { color: #C7CBD3; }
+        .eq .tag-new {
+            align-self: flex-start;
+            font-size: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+            padding: 6px 14px; border-radius: 999px; background: var(--blue); color: #fff;
+        }
+        .eq ul { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+        .eq li { font-size: 25px; color: var(--ink-2); display: flex; gap: 14px; align-items: baseline; }
+        .eq li::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--blue); flex: none; transform: translateY(-3px); }
+
+        /* ===========================================
+           S4 — MCP INTEGRADO (fluxo)
+           =========================================== */
+        .flow {
+            position: absolute; left: 0; right: 0; top: 300px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .node {
+            padding: 30px 30px;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .node .eyebrow { font-size: 16px; }
+        .node h4 { font-size: 30px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.15; }
+        .node p { font-size: 21px; color: var(--muted); line-height: 1.4; }
+        .node.mcp {
+            width: 280px; align-items: center; text-align: center;
+            background: var(--blue); border-color: var(--blue); color: #fff;
+            box-shadow: 0 24px 60px -18px rgba(0, 101, 255, 0.6);
+        }
+        .node.mcp .eyebrow { color: rgba(255, 255, 255, 0.75); }
+        .node.mcp .mcp-ring {
+            width: 84px; height: 84px; border-radius: 24px;
+            background: rgba(255, 255, 255, 0.16);
+            display: grid; place-items: center;
+        }
+        .outs { display: flex; flex-direction: column; gap: 12px; }
+        .outs .chip { font-size: 22px; padding: 10px 20px; }
+        .flow-line { flex: 1; position: relative; height: 2px; margin: 0 28px; background: repeating-linear-gradient(90deg, #B8C2D0 0 8px, transparent 8px 15px); background-size: 30px 2px; animation: dashmove 1s linear infinite; }
+        .flow-line::after { content: ''; position: absolute; right: -2px; top: 50%; width: 12px; height: 12px; border-top: 2.5px solid #B8C2D0; border-right: 2.5px solid #B8C2D0; transform: translateY(-50%) rotate(45deg); }
+        @keyframes dashmove { to { background-position: 30px 0; } }
+        .persona-pair { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        .avatar {
+            width: 92px; height: 92px; border-radius: 50%;
+            display: grid; place-items: center;
+            font-size: 26px; font-weight: 600;
+        }
+        .avatar.p { background: var(--grad); color: #fff; }
+        .avatar.c { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+        .swap { color: var(--muted-2); font-size: 18px; display: flex; align-items: center; gap: 8px; }
+
+        /* ===========================================
+           S5 — ARQUITETURA (diagrama SVG)
+           =========================================== */
+        .arch {
+            position: absolute; left: -40px; right: -40px; top: 210px;
+            height: 640px;
+        }
+        .arch svg { width: 100%; height: 100%; overflow: visible; }
+        .arch .nd rect, .arch .nd polygon { fill: #fff; stroke: #E5E7EB; stroke-width: 1.5; }
+        .arch .nd.hl rect { stroke: #0065FF; stroke-width: 2; }
+        .arch .nd.solid rect { fill: #0065FF; stroke: #0065FF; }
+        .arch .nd.ink rect { fill: #111827; stroke: #111827; }
+        .arch text { font-family: var(--font); fill: #1F2937; }
+        .arch .t { font-size: 21px; font-weight: 600; }
+        .arch .s { font-size: 16px; fill: #6B7280; font-weight: 500; }
+        .arch text.w { fill: #fff; }
+        .arch text.w.s { fill: rgba(255, 255, 255, 0.72); }
+        .arch .grp { font-size: 15px; font-weight: 600; letter-spacing: 0.14em; fill: #9CA3AF; }
+        .arch .grp-line { stroke: #E5E7EB; stroke-width: 1.5; }
+        .arch .edge { fill: none; stroke: #B8C2D0; stroke-width: 2; stroke-dasharray: 7 6; animation: flow 1.4s linear infinite; }
+        .arch .edge.b { stroke: #0065FF; opacity: 0.6; }
+        .arch .lane { font-size: 15px; font-weight: 600; letter-spacing: 0.1em; fill: #0065FF; }
+
+        /* ===========================================
+           S6 — BASE DE DADOS (números)
+           =========================================== */
+        .stats {
+            position: absolute; left: 0; right: 0; top: 330px;
+            display: grid; grid-template-columns: repeat(3, 1fr);
+        }
+        .stat { padding: 0 56px; border-left: 1px solid var(--line-2); }
+        .stat:first-child { border-left: 0; padding-left: 0; }
+        .stat .num {
+            font-size: 150px; font-weight: 600; letter-spacing: -0.05em; line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat h4 { font-size: 34px; font-weight: 600; margin-top: 22px; letter-spacing: -0.01em; }
+        .stat p { font-size: 25px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
+        .trace {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            display: flex; align-items: center; gap: 22px;
+            padding: 30px 40px;
+        }
+        .trace .label { font-size: 24px; color: var(--muted); margin-right: auto; }
+        .trace .label b { color: var(--ink); font-weight: 600; }
+
+        /* ===========================================
+           S7 — AUDIOVISUAL
+           =========================================== */
+        .split { position: absolute; inset: 0; display: grid; grid-template-columns: 820px 1fr; gap: 80px; }
+        .signals { display: grid; grid-template-columns: repeat(4, auto); gap: 16px; justify-content: start; margin-top: 56px; }
+        .signals .chip { font-size: 25px; padding: 14px 24px; }
+        .signals .chip svg { width: 22px; height: 22px; color: var(--blue); }
+        .extras { display: flex; gap: 14px; margin-top: 40px; }
+        .codecard {
+            align-self: center;
+            background: #0F1729;
+            border-radius: 28px;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 40px 80px -30px rgba(15, 23, 41, 0.55);
+        }
+        .codecard .bar {
+            display: flex; align-items: center; gap: 10px;
+            padding: 22px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .codecard .bar i { width: 13px; height: 13px; border-radius: 50%; background: #2A3550; }
+        .codecard .bar span { margin-left: 14px; font-family: var(--mono); font-size: 18px; color: #8B95A9; }
+        .codecard pre {
+            font-family: var(--mono); font-size: 24px; line-height: 1.7;
+            padding: 30px 40px 36px; color: #C9D3E6;
+        }
+        .codecard .k { color: #7CB4FF; }
+        .codecard .v { color: #F5A3FF; }
+        .codecard .c { color: #5C6883; }
+
+        /* ===========================================
+           S8 — ALVO E VALIDAÇÃO
+           =========================================== */
+        .s8 .split { grid-template-columns: 1fr 600px; gap: 72px; }
+        .chart8 { position: relative; height: 470px; margin-top: 30px; padding: 40px 44px 36px; }
+        .bars {
+            position: absolute; left: 44px; right: 220px; bottom: 96px; height: 300px;
+            display: flex; align-items: flex-end; gap: 8px;
+        }
+        .bars span {
+            flex: 1; background: #E5E7EB; border-radius: 6px 6px 2px 2px;
+            transform-origin: bottom; transform: scaleY(0);
+            transition: transform 0.7s var(--ease);
+        }
+        .slide.visible .bars span { transform: scaleY(1); }
+        .newbar {
+            position: absolute; right: 120px; bottom: 96px; width: 64px; height: 0;
+            border-radius: 10px 10px 3px 3px; background: var(--grad);
+            transition: height 1s var(--ease) 1.2s;
+        }
+        .newbar-label {
+            position: absolute; right: 70px; width: 170px; text-align: center;
+            font-size: 18px; font-weight: 600; color: var(--blue);
+        }
+        .hline {
+            position: absolute; left: 44px; right: 60px; height: 0;
+            border-top: 2px dashed var(--muted-2);
+        }
+        .hline.x3 { border-top-color: var(--blue); }
+        .hline em {
+            position: absolute; left: 0; top: -34px;
+            font-style: normal; font-size: 18px; font-weight: 600; color: var(--muted-2);
+            background: #fff; padding: 0 8px 0 0;
+        }
+        .hline.x3 em { color: var(--blue); }
+        .chart8 .axis {
+            position: absolute; left: 44px; right: 60px; bottom: 40px;
+            display: flex; justify-content: space-between;
+            font-size: 18px; color: var(--muted-2); font-weight: 500;
+            border-top: 1px solid var(--line); padding-top: 14px;
+        }
+        .rules { display: flex; flex-direction: column; gap: 22px; justify-content: center; }
+        .rule { display: flex; gap: 24px; padding: 30px 34px; align-items: center; }
+        .rule h4 { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+        .rule p { font-size: 22px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+        .tl {
+            display: flex; height: 54px; border-radius: 14px; overflow: hidden;
+            font-size: 20px; font-weight: 600; margin-top: 16px;
+        }
+        .tl div { display: grid; place-items: center; }
+        .tl .tr { flex: 3; background: #F3F4F6; color: var(--muted); }
+        .tl .te { flex: 1; background: var(--blue); color: #fff; }
+
+        /* ===========================================
+           S9 — MODELOS
+           =========================================== */
+        .s9 .split { grid-template-columns: 1fr 640px; gap: 90px; }
+        .models { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 60px; }
+        .models .chip { font-size: 26px; padding: 14px 26px; }
+        .models .chip.base { background: #F3F4F6; color: var(--muted); border-color: transparent; }
+        .funnel { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 0; }
+        .fstep { padding: 34px 38px; display: flex; gap: 24px; align-items: center; }
+        .fstep h4 { font-size: 30px; font-weight: 600; }
+        .fstep p { font-size: 22px; color: var(--muted); margin-top: 4px; }
+        .fstep.dark p { color: #C7CBD3; }
+        .fdown { height: 54px; display: grid; place-items: center; color: var(--line-2); }
+
+        /* ===========================================
+           S10 — RESULTADO GERAL
+           =========================================== */
+        .s10 .split { grid-template-columns: 1fr 560px; gap: 80px; top: 250px; }
+        .auc-compare { padding: 54px 60px; display: flex; flex-direction: column; justify-content: space-between; }
+        .auc-row { display: flex; align-items: flex-end; gap: 48px; }
+        .auc-item .eyebrow { margin-bottom: 14px; }
+        .auc-item .big { font-size: 160px; font-weight: 600; letter-spacing: -0.05em; line-height: 0.95; font-variant-numeric: tabular-nums; }
+        .auc-item.ref .big { color: #C3C8D0; font-size: 110px; }
+        .auc-sep { font-size: 70px; color: var(--line-2); padding-bottom: 20px; }
+        .delta { display: flex; align-items: center; gap: 22px; margin-top: 40px; flex-wrap: wrap; }
+        .delta .chip { font-size: 28px; padding: 14px 26px; }
+        .delta .ci { font-size: 24px; color: var(--muted); }
+        .ci-ruler { position: relative; height: 40px; margin-top: 26px; }
+        .ci-ruler .base { position: absolute; left: 0; right: 0; top: 19px; height: 2px; background: var(--line); }
+        .ci-ruler .zero { position: absolute; top: 4px; bottom: 4px; width: 2px; background: var(--muted-2); }
+        .ci-ruler .rng { position: absolute; top: 12px; height: 16px; border-radius: 8px; background: rgba(0, 101, 255, 0.18); }
+        .ci-ruler .pt { position: absolute; top: 20px; width: 22px; height: 22px; border-radius: 50%; background: var(--blue); border: 4px solid #fff; transform: translate(-50%, -50%); box-shadow: 0 0 0 1px var(--blue); }
+        .ci-ruler span { position: absolute; top: 44px; font-size: 16px; color: var(--muted-2); transform: translateX(-50%); font-family: var(--mono); }
+        .side-stats { display: flex; flex-direction: column; gap: 28px; }
+        .side-stats .card { padding: 40px 44px; }
+        .side-stats .big { font-size: 110px; font-weight: 600; letter-spacing: -0.045em; line-height: 1; }
+        .side-stats p { font-size: 24px; color: var(--muted); margin-top: 12px; line-height: 1.4; }
+
+        /* ===========================================
+           S11 — RESULTADO POR SETOR (forest plot)
+           =========================================== */
+        .forest { position: absolute; left: 0; right: 0; top: 290px; padding: 50px 60px 60px; }
+        .frow { display: grid; grid-template-columns: 300px 900px 1fr; align-items: center; height: 120px; border-bottom: 1px solid #F1F2F4; }
+        .frow:last-of-type { border-bottom: 0; }
+        .frow .name { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; }
+        .frow .val { font-family: var(--mono); font-size: 22px; color: var(--muted-2); margin-top: 4px; }
+        .ftrack { position: relative; height: 100%; }
+        .ftrack .ci {
+            position: absolute; top: 50%; height: 18px; transform: translateY(-50%);
+            border-radius: 10px; background: rgba(0, 101, 255, 0.16);
+            transform-origin: left; scale: 0 1; transition: scale 0.9s var(--ease) 0.6s;
+        }
+        .slide.visible .ftrack .ci { scale: 1 1; }
+        .ftrack .pt {
+            position: absolute; top: 50%; width: 34px; height: 34px; border-radius: 50%;
+            translate: -50% -50%; border: 5px solid #fff;
+            box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.08), 0 6px 16px rgba(17, 24, 39, 0.18);
+        }
+        .ftrack .pt.blue { background: var(--blue); width: 42px; height: 42px; }
+        .ftrack .pt.mid { background: #7FB0FF; }
+        .ftrack .pt.amber { background: #F59E0B; }
+        .fgrid { position: absolute; left: 360px; width: 900px; top: 50px; bottom: 60px; pointer-events: none; }
+        .fgrid .gl { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid #F1F2F4; }
+        .fgrid .gl.chance { border-left: 2px dashed var(--muted-2); }
+        .fgrid .gl b {
+            position: absolute; bottom: -44px; transform: translateX(-50%);
+            font-family: var(--mono); font-size: 18px; font-weight: 400; color: var(--muted-2);
+        }
+        .fgrid .gl.chance i {
+            position: absolute; top: -34px; transform: translateX(-50%);
+            font-style: normal; font-size: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-2); white-space: nowrap;
+        }
+        .frow .st { justify-self: end; }
+        .frow .st .status { font-size: 20px; padding: 8px 16px; white-space: nowrap; }
+
+        /* ===========================================
+           S12 — CREATIVE BATTLE
+           =========================================== */
+        .battle { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 640px; gap: 80px; }
+        .vs { display: flex; align-items: center; gap: 36px; margin-top: 56px; }
+        .vcard { width: 260px; height: 420px; border-radius: 30px; position: relative; overflow: hidden; border: 1px solid var(--line); background: linear-gradient(165deg, #F3F4F6, #E5E7EB); }
+        .vcard.b { background: linear-gradient(165deg, #3D8BFF, #0065FF 55%, #B656FF); border-color: transparent; box-shadow: 0 30px 60px -24px rgba(0, 101, 255, 0.55); }
+        .vcard .lbl { position: absolute; left: 22px; top: 22px; font-size: 22px; font-weight: 600; padding: 6px 16px; border-radius: 999px; background: #fff; color: var(--ink); }
+        .vcard .next { position: absolute; left: 22px; right: 22px; bottom: 22px; font-size: 19px; font-weight: 600; padding: 10px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.95); color: var(--blue); text-align: center; }
+        .vcard .lines { position: absolute; left: 22px; right: 22px; top: 50%; display: flex; flex-direction: column; gap: 12px; }
+        .vcard .lines i { height: 12px; border-radius: 6px; background: rgba(17, 24, 39, 0.08); }
+        .vcard.b .lines i { background: rgba(255, 255, 255, 0.3); }
+        .vs-badge { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fff; font-size: 26px; font-weight: 700; letter-spacing: 0.02em; }
+        .mcp-out { align-self: center; padding: 44px 46px; }
+        .mcp-out .hd { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
+        .mcp-out .hd span { font-family: var(--mono); font-size: 20px; color: var(--muted-2); }
+        .oitem { display: flex; gap: 22px; align-items: center; padding: 22px 0; border-top: 1px solid #F1F2F4; }
+        .oitem h4 { font-size: 28px; font-weight: 600; }
+        .oitem p { font-size: 21px; color: var(--muted); margin-top: 4px; }
+        .quote-strip { position: absolute; left: 0; bottom: 0; font-size: 34px; font-weight: 500; color: var(--ink-2); letter-spacing: -0.01em; }
+        .quote-strip s { color: var(--muted-2); text-decoration-color: rgba(107, 114, 128, 0.6); }
+
+        /* ===========================================
+           DEMO — vídeo da solução com capítulos
+           =========================================== */
+        .s-demo .content { top: 150px; bottom: 90px; }
+        .demo-grid { position: absolute; inset: 0; display: grid; grid-template-columns: 400px 1fr; gap: 56px; align-items: center; }
+        .demo-side .h-title { font-size: 64px; margin-top: 28px; }
+        .demo-side .lead { font-size: 24px; margin-top: 20px; }
+        .chapters { list-style: none; margin-top: 36px; display: flex; flex-direction: column; gap: 6px; }
+        .chapters button {
+            width: 100%; display: flex; align-items: center; gap: 16px;
+            padding: 12px 16px; border-radius: 14px; border: 1px solid transparent;
+            background: transparent; cursor: pointer; text-align: left;
+            font: 500 22px/1.2 var(--font); color: var(--muted);
+            transition: background .25s ease, color .25s ease, border-color .25s ease;
+        }
+        .chapters button:hover { background: var(--surface); border-color: var(--line); color: var(--ink); }
+        .chapters button.on { background: var(--surface); border-color: rgba(0, 101, 255, 0.4); color: var(--ink); box-shadow: 0 8px 24px -14px rgba(0, 101, 255, 0.5); }
+        .chapters .t { font: 500 17px/1 var(--mono); color: var(--muted-2); min-width: 44px; }
+        .chapters button.on .t { color: var(--blue); }
+        .browser { overflow: hidden; border-radius: 22px; }
+        .browser .bar { display: flex; align-items: center; gap: 9px; height: 52px; padding: 0 20px; border-bottom: 1px solid var(--line); background: #F3F4F6; }
+        .browser .bar i { width: 12px; height: 12px; border-radius: 50%; background: #D1D5DB; }
+        .browser .bar span { margin-left: 14px; padding: 6px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font: 400 16px/1 var(--mono); color: var(--muted); }
+        .browser .bar em { margin-left: auto; font: 600 15px/1 var(--font); font-style: normal; letter-spacing: .08em; text-transform: uppercase; color: var(--green); display: flex; align-items: center; gap: 8px; }
+        .browser .bar em::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .browser video { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; max-height: none; background: #F9FAFB; cursor: pointer; }
+        .demo-progress { height: 4px; background: var(--line); }
+        .demo-progress div { height: 100%; width: 0; background: var(--grad); }
+
+        /* ===========================================
+           S13 — DIFICULDADES
+           =========================================== */
+        .ltable { position: absolute; left: 0; right: 0; top: 240px; }
+        .lhead, .lrow { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; }
+        .lhead { padding: 0 40px 18px; }
+        .lrow { padding: 16px 40px; margin-bottom: 12px; }
+        .lrow .lim { font-size: 30px; font-weight: 500; color: var(--ink-2); display: flex; gap: 18px; align-items: center; }
+        .lrow .lim::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: #F59E0B; flex: none; }
+        .lrow .res { display: flex; gap: 12px; flex-wrap: wrap; }
+        .lrow .res .chip { font-size: 23px; padding: 10px 20px; }
+        .lrow .to { color: var(--line-2); display: grid; place-items: center; }
+
+        /* ===========================================
+           S14 — EVOLUÇÃO (roadmap)
+           =========================================== */
+        .road { position: absolute; left: 0; right: 0; top: 300px; display: grid; grid-template-columns: 0.8fr 1fr 1.25fr; gap: 0; align-items: stretch; }
+        .stage-col { position: relative; padding: 0 44px; }
+        .stage-col:nth-child(2) { padding-left: 0; }
+        .road-line { position: absolute; left: 0; right: 0; top: 128px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #D1D5DB, #0065FF 55%, #F574FF); }
+        .stage-col .dot { position: absolute; top: 118px; left: 44px; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 5px solid var(--blue); }
+        .stage-col:nth-child(2) .dot { left: 0; border-color: var(--line-2); }
+        .stage-col:last-child .dot { border-color: var(--pink); }
+        .stage-col h4 { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; margin-top: 10px; }
+        .stage-col ul { list-style: none; margin-top: 90px; display: flex; flex-direction: column; gap: 16px; }
+        .stage-col li { font-size: 26px; color: var(--ink-2); display: flex; gap: 14px; align-items: baseline; }
+        .stage-col li::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); flex: none; transform: translateY(-4px); }
+        .stage-col:nth-child(2) li::before { background: var(--line-2); }
+        .stage-col:last-child li::before { background: var(--pink); }
+
+        /* ===========================================
+           S15 — FECHAMENTO
+           =========================================== */
+        .s15 .h-display { font-size: 100px; max-width: 1500px; margin-top: 40px; }
+        .triad { display: flex; gap: 18px; margin-top: 40px; }
+        .triad .chip { font-size: 28px; padding: 14px 30px; }
+        .takeaways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 70px; width: 100%; }
+        .takeaways .card { padding: 36px 40px; text-align: left; }
+        .takeaways .big { font-size: 64px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
+        .takeaways p { font-size: 23px; color: var(--muted); margin-top: 12px; line-height: 1.4; }
+
+        /* ===========================================
+           S16 — APÊNDICE (perguntas)
+           =========================================== */
+        .qa { position: absolute; left: 0; right: 0; top: 280px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+        .qa .card { padding: 50px 54px; }
+        .qa .q { font-size: 22px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); }
+        .qa h3 { font-size: 46px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.1; margin-top: 18px; }
+        .qa p { font-size: 26px; color: var(--muted); line-height: 1.5; margin-top: 22px; }
+
+        /* ===========================================
+           NOTAS DO APRESENTADOR (tecla N) — fora do palco
+           =========================================== */
+        .notes { display: none; }
+        .notes-panel {
+            position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+            width: min(1100px, calc(100vw - 32px));
+            max-height: 40vh; overflow: auto;
+            background: rgba(17, 24, 39, 0.94); color: #F3F4F6;
+            font-family: var(--font); font-size: 17px; line-height: 1.55;
+            padding: 20px 26px; border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 1001;
+        }
+        .notes-panel.show { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+        .notes-panel b { display: block; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #8EB8FF; margin-bottom: 6px; }
+
+        /* ===========================================
+           CONTROLES (fora do palco)
+           =========================================== */
+        .deck-controls { display: flex; gap: 8px; opacity: 0; transition: opacity 0.3s ease; }
+        body:hover .deck-controls { opacity: 1; }
+        .deck-controls button {
+            width: 40px; height: 40px; border-radius: 12px;
+            border: 1px solid #E5E7EB; background: rgba(255, 255, 255, 0.92);
+            color: #374151; font-size: 18px; cursor: pointer;
+            display: grid; place-items: center;
+            font-family: var(--font);
+        }
+        .deck-controls button:hover { background: #fff; color: var(--blue); }
+
+        /* ===========================================
+           EDIÇÃO INLINE (tecla E ou canto superior esquerdo)
+           =========================================== */
+        .edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+        .edit-toggle {
+            position: fixed; top: 16px; left: 16px; z-index: 10001;
+            height: 40px; padding: 0 16px; border-radius: 12px;
+            border: 1px solid #E5E7EB; background: #fff; color: #111827;
+            font-family: var(--font); font-size: 15px; font-weight: 600; cursor: pointer;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+        .edit-toggle.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+        body.editing [contenteditable="true"] { outline: 2px dashed rgba(0, 101, 255, 0.35); outline-offset: 4px; border-radius: 6px; }
+        body.editing [contenteditable="true"]:focus { outline-color: var(--blue); }
+    </style>
+</head>
+<body>
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage" aria-live="polite">
+
+            <!-- Chrome global (escala junto com o palco) -->
+            <header class="chrome" aria-hidden="true">
+                <img class="chrome-logo" src="assets/galaxies-logo.png" alt="Galaxies">
+                <div class="chrome-right">
+                    <span class="chrome-section" id="chromeSection"></span>
+                    <span class="chrome-page" id="chromePage">01 / 16</span>
+                </div>
+            </header>
+            <div class="progress" id="progress"></div>
+
+            <!-- ============ 01 · ABERTURA ============ -->
+            <section class="slide s1 active" data-section="Galaxies Predictive">
+                <div class="glow blue" style="width:700px;height:500px;left:-120px;top:120px"></div>
+                <div class="glow pink" style="width:600px;height:460px;right:-80px;top:60px"></div>
+                <div class="content center-col">
+                    <div class="kicker reveal" style="--d:0"><b>Predictive</b>Camada estatística para personas sintéticas</div>
+                    <h1 class="h-display reveal" style="--d:1">Qual criativo merece <span class="grad">receber verba?</span></h1>
+                    <p class="lead reveal" style="--d:2">A persona já explica o que percebe. Agora ela também indica o que testar primeiro, antes de a marca publicar.</p>
+                    <div class="reels">
+                        <div class="reel reveal" style="--d:3"><span class="rank">#3</span><span class="play"></span></div>
+                        <div class="reel win reveal" style="--d:4"><span class="rank">#1</span><span class="play"></span></div>
+                        <div class="reel reveal" style="--d:5"><span class="rank">#4</span><span class="play"></span></div>
+                        <div class="reel reveal" style="--d:6"><span class="rank">#2</span><span class="play"></span></div>
+                    </div>
+                </div>
+                <aside class="notes">“A Galaxies já tem algo muito valioso: personas sintéticas que assistem aos criativos e explicam o que percebem. Nós partimos de uma pergunta simples: entre vários vídeos, qual merece ser testado e receber verba antes de a marca publicar?”</aside>
+            </section>
+
+            <!-- ============ 02 · DOR CENTRAL ============ -->
+            <section class="slide s2" data-section="Dor central">
+                <div class="glow blue" style="width:520px;height:420px;right:0;top:80px"></div>
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>02</b>Dor central</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px">A persona opina.<br>O marketing precisa <span class="grad">decidir.</span></h2>
+                    <div class="duo">
+                        <div class="card reveal left" style="--d:2">
+                            <div class="card-head">
+                                <div class="icon pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+                                <div><h3>Hoje: opinião qualitativa</h3><p>Persona sintética</p></div>
+                            </div>
+                            <div class="bubble"><i>Gostou</i>o que funcionou no criativo</div>
+                            <div class="bubble"><i>Rejeitou</i>o que afastou o público</div>
+                            <div class="bubble"><i>Reagiu</i>como se sentiu ao assistir</div>
+                        </div>
+                        <div class="mid reveal" style="--d:3">
+                            <svg width="64" height="28" viewBox="0 0 64 28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14h58M48 3l12 11-12 11"/></svg>
+                        </div>
+                        <div class="card blue reveal" style="--d:4">
+                            <div class="card-head">
+                                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg></div>
+                                <div><h3>Falta: decisão comparável</h3><p>Antes da performance real existir</p></div>
+                            </div>
+                            <div class="rankrow"><span class="n">1</span><div class="track"><span class="ci" style="left:50%;width:40%"></span><span class="pt" style="left:70%"></span></div></div>
+                            <div class="rankrow"><span class="n">2</span><div class="track"><span class="ci" style="left:30%;width:42%"></span><span class="pt" style="left:52%"></span></div></div>
+                            <div class="rankrow"><span class="n">3</span><div class="track"><span class="ci" style="left:12%;width:38%"></span><span class="pt" style="left:30%"></span></div></div>
+                            <div class="missing-tag">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                Ordem dos criativos + incerteza da escolha
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">“Hoje a persona entrega opinião qualitativa. Ela diz o que gostou, o que rejeitou e como reage ao criativo. Mas a equipe de marketing precisa tomar uma decisão comparável antes de a performance real existir. Falta uma camada estatística que ordene os criativos e mostre a incerteza dessa escolha.”</aside>
+            </section>
+
+            <!-- ============ 03 · A LACUNA ============ -->
+            <section class="slide s3" data-section="A lacuna">
+                <div class="glow pink" style="width:520px;height:420px;left:40%;top:40px"></div>
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>03</b>A lacuna</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px">Não substituímos a persona.<br><span class="grad">Completamos.</span></h2>
+                    <div class="eq">
+                        <div class="card reveal" style="--d:2">
+                            <div class="icon pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+                            <h3>Persona</h3>
+                            <p>Continua interpretando o criativo pela ótica do público.</p>
+                        </div>
+                        <div class="op reveal" style="--d:3">+</div>
+                        <div class="card blue reveal" style="--d:4">
+                            <span class="tag-new">Novo</span>
+                            <h3>Modelo preditivo</h3>
+                            <ul>
+                                <li>Treinado em dados observados</li>
+                                <li>Estima desempenho relativo ao canal</li>
+                                <li>Compara alternativas</li>
+                            </ul>
+                        </div>
+                        <div class="op reveal" style="--d:5">=</div>
+                        <div class="card dark reveal" style="--d:6">
+                            <div class="icon" style="background:rgba(255,255,255,.1);color:#fff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+                            <h3>Decisão comparável</h3>
+                            <p>Opinião do público com um número que ordena as opções.</p>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">“Não tentamos substituir a persona. A persona continua interpretando o criativo pela ótica do público. Nós adicionamos o componente que faltava: um modelo treinado em dados observados, capaz de estimar desempenho relativo ao próprio canal e de comparar alternativas.”</aside>
+            </section>
+
+            <!-- ============ 04 · MCP INTEGRADO ============ -->
+            <section class="slide s4" data-section="MCP integrado">
+                <div class="glow blue" style="width:640px;height:420px;left:30%;top:300px"></div>
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>04</b>MCP integrado</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px">Uma tool MCP leva a previsão <span class="grad">até a persona.</span></h2>
+                    <div class="flow">
+                        <div class="card node reveal" style="--d:2;width:300px">
+                            <span class="eyebrow">Entrada</span>
+                            <h4>Criativo +<br>contexto do canal</h4>
+                        </div>
+                        <span class="flow-line reveal" style="--d:3"></span>
+                        <div class="card node mcp reveal scale" style="--d:4">
+                            <div class="mcp-ring"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+                            <span class="eyebrow">Tool</span>
+                            <h4>MCP</h4>
+                        </div>
+                        <span class="flow-line reveal" style="--d:5"></span>
+                        <div class="outs">
+                            <span class="eyebrow reveal" style="--d:6;margin-bottom:4px">O modelo devolve</span>
+                            <span class="chip blue reveal" style="--d:6">Previsão relativa</span>
+                            <span class="chip reveal" style="--d:7">Intervalo</span>
+                            <span class="chip reveal" style="--d:8">Ranking</span>
+                            <span class="chip reveal" style="--d:9">Drivers</span>
+                            <span class="chip reveal" style="--d:10">Avisos</span>
+                        </div>
+                        <span class="flow-line reveal" style="--d:10"></span>
+                        <div class="persona-pair reveal" style="--d:11">
+                            <div class="avatar p">P</div>
+                            <span class="eyebrow">Persona</span>
+                            <span class="swap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></svg>conversa</span>
+                            <div class="avatar c">C</div>
+                            <span class="eyebrow">Cliente</span>
+                        </div>
+                    </div>
+                    <div class="statement reveal" style="--d:12;position:absolute;left:0;bottom:0"><span class="dot"></span>O LLM orquestra e explica. Ele não chuta o número.</div>
+                </div>
+                <aside class="notes">“O fluxo chega à Galaxies por uma tool MCP. O criativo e o contexto do canal entram na tool. O modelo devolve previsão relativa, intervalo, ranking, drivers e avisos. A persona consome esse resultado e conversa com o cliente. O LLM orquestra e explica; ele não chuta o número.”</aside>
+            </section>
+
+            <!-- ============ 05 · ARQUITETURA ============ -->
+            <section class="slide s5" data-section="Arquitetura">
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>05</b>Arquitetura</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px;font-size:66px">Duas entradas, <span class="grad">um mapa de características.</span></h2>
+                    <div class="arch reveal" style="--d:2">
+                        <svg viewBox="0 0 1760 640" role="img" aria-label="Fluxo da arquitetura: YouTube Data API e Gemini VLM, junção por video_id, mapa de características, separação por setor, modelos, previsão, tools MCP e persona">
+                            <defs>
+                                <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#B8C2D0"/></marker>
+                                <marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0065FF"/></marker>
+                                <filter id="sh" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#111827" flood-opacity="0.08"/></filter>
+                            </defs>
+
+                            <!-- Rótulos de grupo -->
+                            <text class="grp" x="0" y="24">COLETA</text>
+                            <line class="grp-line" x1="0" y1="40" x2="480" y2="40"/>
+                            <text class="grp" x="520" y="24">INTEGRAÇÃO</text>
+                            <line class="grp-line" x1="520" y1="40" x2="930" y2="40"/>
+                            <text class="grp" x="950" y="24">MODELAGEM</text>
+                            <line class="grp-line" x1="950" y1="40" x2="1570" y2="40"/>
+                            <text class="grp" x="1610" y="24">ENTREGA</text>
+                            <line class="grp-line" x1="1610" y1="40" x2="1760" y2="40"/>
+
+                            <!-- Arestas -->
+                            <path class="edge" d="M210 222 H230 V164 H246" marker-end="url(#ah)"/>
+                            <path class="edge" d="M210 222 H230 V280 H246" marker-end="url(#ah)"/>
+                            <path class="edge" d="M210 500 H246" marker-end="url(#ah)"/>
+                            <path class="edge" d="M480 164 H500 V330 H516" marker-end="url(#ah)"/>
+                            <path class="edge" d="M480 280 H500 V330"/>
+                            <path class="edge" d="M480 500 H500 V330"/>
+                            <path class="edge" d="M700 330 H736" marker-end="url(#ah)"/>
+                            <path class="edge" d="M930 330 H946" marker-end="url(#ah)"/>
+                            <path class="edge b" d="M1140 330 H1160 V212 H1176" marker-end="url(#ahb)"/>
+                            <path class="edge" d="M1140 330 H1176" marker-end="url(#ah)"/>
+                            <path class="edge" d="M1140 330 H1160 V448 H1176" marker-end="url(#ah)"/>
+                            <path class="edge b" d="M1380 212 H1400 V330 H1416" marker-end="url(#ahb)"/>
+                            <path class="edge" d="M1380 330 H1400"/>
+                            <path class="edge" d="M1380 448 H1400 V330"/>
+                            <path class="edge b" d="M1570 330 H1590 V262 H1606" marker-end="url(#ahb)"/>
+                            <path class="edge b" d="M1685 296 V376" marker-end="url(#ahb)"/>
+
+                            <!-- Faixas -->
+                            <text class="lane" x="0" y="160">MÉTRICAS</text>
+                            <text class="lane" x="0" y="438">AUDIOVISUAL</text>
+
+                            <!-- Coleta -->
+                            <g class="nd" filter="url(#sh)"><rect x="0" y="180" width="210" height="84" rx="16"/></g>
+                            <text class="s" x="105" y="212" text-anchor="middle">Canais selecionados</text>
+                            <text class="t" x="105" y="242" text-anchor="middle">YouTube Data API</text>
+
+                            <g class="nd" filter="url(#sh)"><rect x="0" y="458" width="210" height="84" rx="16"/></g>
+                            <text class="s" x="105" y="490" text-anchor="middle">URL + intervalo do vídeo</text>
+                            <text class="t" x="105" y="520" text-anchor="middle">Gemini / VLM</text>
+
+                            <g class="nd" filter="url(#sh)"><rect x="250" y="132" width="230" height="64" rx="14"/></g>
+                            <text class="t" x="365" y="171" text-anchor="middle" style="font-size:19px">Metadados e snapshots</text>
+                            <g class="nd" filter="url(#sh)"><rect x="250" y="248" width="230" height="64" rx="14"/></g>
+                            <text class="t" x="365" y="287" text-anchor="middle" style="font-size:19px">Histórico do canal</text>
+                            <g class="nd" filter="url(#sh)"><rect x="250" y="468" width="230" height="64" rx="14"/></g>
+                            <text class="t" x="365" y="499" text-anchor="middle" style="font-size:19px">Características</text>
+                            <text class="s" x="365" y="520" text-anchor="middle">audiovisuais</text>
+
+                            <!-- Integração -->
+                            <g class="nd" filter="url(#sh)"><rect x="520" y="290" width="180" height="80" rx="16"/></g>
+                            <text class="s" x="610" y="322" text-anchor="middle">Junção por</text>
+                            <text class="t mono" x="610" y="350" text-anchor="middle" style="font-family:'JetBrains Mono',monospace;font-size:19px">video_id</text>
+                            <g class="nd ink" filter="url(#sh)"><rect x="740" y="290" width="190" height="80" rx="16"/></g>
+                            <text class="w s" x="835" y="322" text-anchor="middle">Mapa de</text>
+                            <text class="w t" x="835" y="350" text-anchor="middle">características</text>
+
+                            <!-- Modelagem -->
+                            <g class="nd" filter="url(#sh)"><polygon points="950,330 1045,235 1140,330 1045,425"/></g>
+                            <text class="t" x="1045" y="326" text-anchor="middle" style="font-size:19px">Separação</text>
+                            <text class="s" x="1045" y="348" text-anchor="middle">por setor</text>
+
+                            <g class="nd hl" filter="url(#sh)"><rect x="1180" y="180" width="200" height="64" rx="14"/></g>
+                            <text class="t" x="1280" y="219" text-anchor="middle" style="font-size:19px;fill:#0065FF">Automotivo</text>
+                            <g class="nd" filter="url(#sh)"><rect x="1180" y="298" width="200" height="64" rx="14"/></g>
+                            <text class="t" x="1280" y="337" text-anchor="middle" style="font-size:19px">Moda</text>
+                            <g class="nd" filter="url(#sh)"><rect x="1180" y="416" width="200" height="64" rx="14"/></g>
+                            <text class="t" x="1280" y="455" text-anchor="middle" style="font-size:19px">Beleza</text>
+                            <text class="s" x="1280" y="512" text-anchor="middle">um modelo por setor</text>
+
+                            <g class="nd" filter="url(#sh)"><rect x="1420" y="290" width="150" height="80" rx="16"/></g>
+                            <text class="s" x="1495" y="322" text-anchor="middle">Previsão de</text>
+                            <text class="t" x="1495" y="350" text-anchor="middle" style="font-size:19px">visualizações</text>
+
+                            <!-- Entrega -->
+                            <g class="nd solid" filter="url(#sh)"><rect x="1610" y="228" width="150" height="68" rx="16"/></g>
+                            <text class="w s" x="1685" y="256" text-anchor="middle">Tools expostas</text>
+                            <text class="w t" x="1685" y="282" text-anchor="middle">MCP</text>
+                            <g class="nd ink" filter="url(#sh)"><rect x="1610" y="380" width="150" height="80" rx="16"/></g>
+                            <text class="w t" x="1685" y="414" text-anchor="middle" style="font-size:19px">Persona</text>
+                            <text class="w s" x="1685" y="440" text-anchor="middle">ou cliente</text>
+                        </svg>
+                    </div>
+                </div>
+                <aside class="notes">“A arquitetura tem duas entradas. A primeira é a YouTube Data API, que traz metadados, métricas e histórico. A segunda é a análise audiovisual, que transforma frames, abertura, fala e atributos visuais em dados estruturados. Tudo se encontra pelo video_id, formando um mapa de características. Depois separamos os setores, treinamos os modelos e expomos o resultado pelo MCP.”</aside>
+            </section>
+
+            <!-- ============ 06 · BASE DE DADOS ============ -->
+            <section class="slide s6" data-section="Base de dados">
+                <div class="glow blue" style="width:600px;height:400px;left:35%;top:260px"></div>
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>06</b>Base de dados</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px">Uma base construída pela <span class="grad">API oficial.</span></h2>
+                    <div class="stats">
+                        <div class="stat reveal" style="--d:2">
+                            <div class="num" data-count="22434">0</div>
+                            <h4>vídeos catalogados</h4>
+                            <p>pela YouTube Data API oficial</p>
+                        </div>
+                        <div class="stat reveal" style="--d:3">
+                            <div class="num grad" data-count="13142">0</div>
+                            <h4>Shorts na base v2</h4>
+                            <p>maduros e rotulados, para treino e avaliação</p>
+                        </div>
+                        <div class="stat reveal" style="--d:4">
+                            <div class="num" data-count="1001">0</div>
+                            <h4>análises VLM validadas</h4>
+                            <p>camada audiovisual auditável</p>
+                        </div>
+                    </div>
+                    <div class="card trace reveal" style="--d:5">
+                        <span class="label"><b>Separados e rastreáveis.</b> A API devolve métricas, não a história completa de cada vídeo.</span>
+                        <span class="chip">Dados originais</span>
+                        <span class="chip">Atributos</span>
+                        <span class="chip">Ausências</span>
+                    </div>
+                </div>
+                <aside class="notes">“Catalogamos 22.434 vídeos pela API oficial. Para a base v2 de treino e avaliação, usamos 13.142 Shorts maduros e rotulados. Além disso, validamos 1.001 análises VLM. Guardamos dados originais, atributos e ausências de modo separado e rastreável. Isso importa porque uma API pode devolver métricas, mas não devolve automaticamente a história completa de cada vídeo.”</aside>
+            </section>
+
+            <!-- ============ 07 · AUDIOVISUAL ============ -->
+            <section class="slide s7" data-section="Audiovisual">
+                <div class="glow pink" style="width:560px;height:460px;right:80px;top:200px"></div>
+                <div class="content">
+                    <div class="split">
+                        <div>
+                            <div class="kicker reveal" style="--d:0"><b>07</b>Audiovisual</div>
+                            <h2 class="h-title reveal" style="--d:1;margin-top:30px">A abertura do vídeo vira <span class="grad">dado estruturado.</span></h2>
+                            <div class="signals">
+                                <span class="chip reveal" style="--d:2">Gancho</span>
+                                <span class="chip reveal" style="--d:2">Rosto</span>
+                                <span class="chip reveal" style="--d:3">Produto</span>
+                                <span class="chip reveal" style="--d:3">Texto na tela</span>
+                                <span class="chip reveal" style="--d:4">Ritmo</span>
+                                <span class="chip reveal" style="--d:4">Clareza</span>
+                                <span class="chip reveal" style="--d:5">CTA</span>
+                                <span class="chip reveal" style="--d:5">Visual</span>
+                            </div>
+                            <div class="extras">
+                                <span class="chip blue reveal" style="--d:6">+ embeddings de thumbnail</span>
+                                <span class="chip blue reveal" style="--d:7">+ sinais de texto</span>
+                            </div>
+                            <p class="lead reveal" style="--d:8;margin-top:44px;font-size:28px">O conteúdo acrescenta informação além do histórico do canal?</p>
+                        </div>
+                        <div class="codecard reveal scale" style="--d:3">
+                            <div class="bar"><i></i><i></i><i></i><span>rubrica_vlm.json</span></div>
+<pre><span class="c">// rubrica fechada, uma resposta por vídeo</span>
+{
+  <span class="k">"gancho"</span>:        <span class="v">bool</span>,
+  <span class="k">"rosto"</span>:         <span class="v">bool</span>,
+  <span class="k">"produto"</span>:       <span class="v">bool</span>,
+  <span class="k">"texto_na_tela"</span>: <span class="v">bool</span>,
+  <span class="k">"ritmo"</span>:         <span class="v">escala</span>,
+  <span class="k">"clareza"</span>:       <span class="v">escala</span>,
+  <span class="k">"cta"</span>:           <span class="v">bool</span>,
+  <span class="k">"visual"</span>:        <span class="v">{ ... }</span>
+}
+<span class="c">// auditável → vira feature</span></pre>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">“Na abertura do vídeo, extraímos sinais como gancho, rosto, produto, texto na tela, ritmo, clareza, CTA e atributos visuais. O VLM responde uma rubrica fechada em JSON, para que o resultado seja auditável e possa virar feature. Junto com embeddings de thumbnail e sinais de texto, essa camada permite testar se o conteúdo acrescenta informação além do histórico do canal.”</aside>
+            </section>
+
+            <!-- ============ 08 · ALVO E VALIDAÇÃO ============ -->
+            <section class="slide s8" data-section="Alvo e validação">
+                <div class="content">
+                    <div class="split">
+                        <div>
+                            <div class="kicker reveal" style="--d:0"><b>08</b>Alvo e validação</div>
+                            <h2 class="h-title reveal" style="--d:1;margin-top:30px">Viral é <span class="grad">relativo ao canal.</span></h2>
+                            <div class="card chart8 reveal" style="--d:2">
+                                <div class="bars" id="bars8"></div>
+                                <div class="hline" id="median8"><em>mediana</em></div>
+                                <div class="hline x3" id="x3line8"><em>3× a mediana = viral</em></div>
+                                <div class="newbar" id="newbar8"></div>
+                                <div class="newbar-label" id="newbarLabel8">novo Short</div>
+                                <div class="axis"><span>30 Shorts anteriores do mesmo canal</span><span>próximo</span></div>
+                            </div>
+                        </div>
+                        <div class="rules">
+                            <div class="card rule reveal" style="--d:3">
+                                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+                                <div><h4>Maduro por 60 dias</h4><p>Só entra no rótulo depois de estabilizar.</p></div>
+                            </div>
+                            <div class="card rule reveal" style="--d:4">
+                                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+                                <div style="flex:1"><h4>Treino no passado, teste no futuro</h4>
+                                    <div class="tl"><div class="tr">treino</div><div class="te">teste</div></div>
+                                </div>
+                            </div>
+                            <div class="card rule reveal" style="--d:5">
+                                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+                                <div><h4>Sem vazamento temporal</h4><p>O histórico de cada vídeo usa só vídeos anteriores.</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">“Definimos viral de forma relativa: um Short atinge pelo menos três vezes a mediana dos 30 Shorts anteriores daquele canal. O vídeo precisa estar maduro por 60 dias. Treinamos no passado e testamos no futuro. O histórico de cada vídeo usa somente vídeos anteriores. Assim, evitamos que o modelo veja informação que não existiria antes da publicação.”</aside>
+            </section>
+
+            <!-- ============ 09 · MODELOS COMPARADOS ============ -->
+            <section class="slide s9" data-section="Modelos comparados">
+                <div class="glow blue" style="width:520px;height:460px;right:120px;top:260px"></div>
+                <div class="content">
+                    <div class="split">
+                        <div>
+                            <div class="kicker reveal" style="--d:0"><b>09</b>Modelos comparados</div>
+                            <h2 class="h-title reveal" style="--d:1;margin-top:30px">Escolha por validação, <span class="grad">não por treino.</span></h2>
+                            <div class="models">
+                                <span class="chip base reveal" style="--d:2">Baseline histórico</span>
+                                <span class="chip reveal" style="--d:2">Regressões</span>
+                                <span class="chip reveal" style="--d:3">Random Forest</span>
+                                <span class="chip reveal" style="--d:3">Extra Trees</span>
+                                <span class="chip reveal" style="--d:4">HistGradientBoosting</span>
+                                <span class="chip reveal" style="--d:4">CatBoost</span>
+                                <span class="chip reveal" style="--d:5">CatBoost YetiRank</span>
+                                <span class="chip reveal" style="--d:5">MLP</span>
+                                <span class="chip blue reveal" style="--d:6">Ensembles</span>
+                            </div>
+                        </div>
+                        <div class="funnel">
+                            <div class="card fstep reveal" style="--d:4">
+                                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg></div>
+                                <div><h4>Validação interna</h4><p>escolhe o modelo</p></div>
+                            </div>
+                            <div class="fdown reveal" style="--d:5"><svg width="24" height="40" viewBox="0 0 24 40" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v34M4 28l8 8 8-8"/></svg></div>
+                            <div class="card fstep reveal" style="--d:6">
+                                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+                                <div><h4>Corte externo isolado</h4><p>confirma o resultado</p></div>
+                            </div>
+                            <div class="fdown reveal" style="--d:7"><svg width="24" height="40" viewBox="0 0 24 40" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v34M4 28l8 8 8-8"/></svg></div>
+                            <div class="card dark fstep reveal" style="--d:8">
+                                <div class="icon" style="background:var(--blue);color:#fff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+                                <div><h4>Ensemble de ranking</h4><p>modelo levado ao holdout</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">“Testamos baseline histórico, regressões, Random Forest, Extra Trees, HistGradientBoosting, CatBoost, CatBoost YetiRank, MLP e ensembles. A escolha não veio da melhor métrica de treino. Usamos validação interna para escolher e um corte externo isolado para confirmar o resultado.”</aside>
+            </section>
+
+            <!-- ============ 10 · RESULTADO GERAL ============ -->
+            <section class="slide s10" data-section="Resultado geral">
+                <div class="glow pink" style="width:520px;height:420px;left:20%;top:300px"></div>
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>10</b>Resultado geral · holdout base v2</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px">O ensemble <span class="grad">supera a referência.</span></h2>
+                    <div class="split" style="top:250px">
+                        <div class="card auc-compare reveal" style="--d:2">
+                            <div>
+                                <div class="auc-row">
+                                    <div class="auc-item ref">
+                                        <div class="eyebrow">Referência histórica</div>
+                                        <div class="big" data-count="0.489" data-dec="3">0,000</div>
+                                    </div>
+                                    <div class="auc-sep">→</div>
+                                    <div class="auc-item">
+                                        <div class="eyebrow" style="color:var(--blue)">Ensemble de ranking</div>
+                                        <div class="big grad" data-count="0.588" data-dec="3">0,000</div>
+                                    </div>
+                                </div>
+                                <div class="delta">
+                                    <span class="chip blue">Δ +0,099</span>
+                                    <span class="ci">AUC por canal · intervalo de confiança de +0,041 a +0,151</span>
+                                </div>
+                            </div>
+                            <!-- Régua do delta: 0 a +0,20 → 0% a 100% -->
+                            <div class="ci-ruler">
+                                <div class="base"></div>
+                                <div class="zero" style="left:0"></div>
+                                <div class="rng" style="left:20.5%;width:55%"></div>
+                                <div class="pt" style="left:49.5%"></div>
+                                <span style="left:0">0</span>
+                                <span style="left:20.5%">+0,041</span>
+                                <span style="left:49.5%">+0,099</span>
+                                <span style="left:75.5%">+0,151</span>
+                            </div>
+                        </div>
+                        <div class="side-stats">
+                            <div class="card reveal" style="--d:3">
+                                <div class="big grad">1,8×</div>
+                                <p>mais virais nos 10% de vídeos priorizados do que numa seleção aleatória</p>
+                            </div>
+                            <div class="card reveal" style="--d:4">
+                                <div class="big" data-count="24.9" data-dec="1" data-suffix="%">0</div>
+                                <p>de precisão nesse top 10%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">“No holdout da base v2, o ensemble de ranking alcançou AUC por canal de 0,588, contra 0,489 da referência histórica. O delta foi mais 0,099, com intervalo de confiança entre mais 0,041 e mais 0,151. Isso sustenta um ganho geral. Nos 10% de vídeos priorizados, encontramos 1,8 vez mais virais que uma seleção aleatória, com precisão de 24,9%.”</aside>
+            </section>
+
+            <!-- ============ 11 · RESULTADO POR SETOR ============ -->
+            <section class="slide s11" data-section="Resultado por setor">
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>11</b>Resultado por setor</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px"><span class="grad">Automotivo</span> lidera. O resto, mostramos também.</h2>
+                    <!-- Escala: AUC 0,40 → 0px · 0,80 → 900px  (x = (v − 0,4) × 2250) -->
+                    <div class="card forest reveal" style="--d:2">
+                        <div class="fgrid">
+                            <div class="gl" style="left:0"><b>0,40</b></div>
+                            <div class="gl chance" style="left:225px"><b>0,50</b><i>aleatório</i></div>
+                            <div class="gl" style="left:450px"><b>0,60</b></div>
+                            <div class="gl" style="left:675px"><b>0,70</b></div>
+                            <div class="gl" style="left:900px"><b>0,80</b></div>
+                        </div>
+                        <div class="frow">
+                            <div><div class="name">Automotivo</div><div class="val">0,700 · IC 0,638–0,792</div></div>
+                            <div class="ftrack">
+                                <span class="ci" style="left:536px;width:346px"></span>
+                                <span class="pt blue reveal scale" style="--d:5;left:675px"></span>
+                            </div>
+                            <div class="st"><span class="status green">Sinal forte</span></div>
+                        </div>
+                        <div class="frow">
+                            <div><div class="name">Beleza</div><div class="val">0,574</div></div>
+                            <div class="ftrack"><span class="pt mid reveal scale" style="--d:6;left:392px"></span></div>
+                            <div class="st"><span class="status blue">Precisa de mais evidência</span></div>
+                        </div>
+                        <div class="frow">
+                            <div><div class="name">Moda</div><div class="val">0,430</div></div>
+                            <div class="ftrack"><span class="pt amber reveal scale" style="--d:7;left:68px"></span></div>
+                            <div class="st"><span class="status amber">Prioridade de investigação</span></div>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">“O principal destaque é Automotivo. O setor atingiu AUC de 0,700, com intervalo entre 0,638 e 0,792. Beleza apresentou 0,574 e ainda precisa de mais evidência para uma promoção isolada. Moda ficou em 0,430 e entra como prioridade de investigação. Mostrar essa diferença é importante: o sistema não esconde onde funciona melhor nem onde ainda precisa evoluir.”</aside>
+            </section>
+
+            <!-- ============ 12 · CREATIVE BATTLE ============ -->
+            <section class="slide s12" data-section="Creative Battle">
+                <div class="glow blue" style="width:560px;height:460px;left:22%;top:280px"></div>
+                <div class="content">
+                    <div class="battle">
+                        <div style="position:relative">
+                            <div class="kicker reveal" style="--d:0"><b>12</b>Creative Battle</div>
+                            <h2 class="h-title reveal" style="--d:1;margin-top:30px">A previsão <span class="grad">vira decisão.</span></h2>
+                            <div class="vs">
+                                <div class="vcard reveal left" style="--d:2"><span class="lbl">A</span><div class="lines"><i style="width:70%"></i><i style="width:90%"></i><i style="width:50%"></i></div></div>
+                                <div class="vs-badge reveal scale" style="--d:3">VS</div>
+                                <div class="vcard b reveal" style="--d:4"><span class="lbl">B</span><div class="lines"><i style="width:80%"></i><i style="width:60%"></i><i style="width:75%"></i></div><span class="next">Próximo teste</span></div>
+                            </div>
+                        </div>
+                        <div class="card mcp-out reveal" style="--d:5">
+                            <div class="hd"><div class="icon" style="width:48px;height:48px;border-radius:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><span>mcp · creative_battle</span></div>
+                            <div class="oitem"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div><div><h4>Ordem</h4><p>qual versão testar primeiro</p></div></div>
+                            <div class="oitem"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M4 8v8M20 8v8"/></svg></div><div><h4>Intervalo</h4><p>o quanto confiar na escolha</p></div></div>
+                            <div class="oitem"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg></div><div><h4>Fatores relevantes</h4><p>o porquê da recomendação</p></div></div>
+                        </div>
+                    </div>
+                    <p class="quote-strip reveal" style="--d:6">Não diz <s>“este vídeo vai viralizar”</s>. Diz qual versão merece o próximo teste, e por quê.</p>
+                </div>
+                <aside class="notes">“Aqui a previsão vira uma decisão. Comparamos um criativo A a uma variante B. O MCP valida as entradas, consulta os atributos e devolve a ordem, o intervalo e os fatores relevantes. A saída não diz ‘este vídeo vai viralizar’. Ela diz qual versão deve receber o próximo teste e por quê.”</aside>
+            </section>
+
+            <!-- ============ DEMO · A SOLUÇÃO NO AR ============ -->
+            <section class="slide s-demo" data-section="Demonstração">
+                <div class="glow blue" style="width:640px;height:460px;left:30%;top:200px"></div>
+                <div class="glow pink" style="width:520px;height:420px;right:-60px;top:520px"></div>
+                <div class="content">
+                    <div class="demo-grid">
+                        <div class="demo-side">
+                            <div class="kicker reveal" style="--d:0"><b>Demo</b>Ao vivo</div>
+                            <h2 class="h-title reveal" style="--d:1">A solução, <span class="grad">ponta a ponta.</span></h2>
+                            <p class="lead reveal" style="--d:2">Cada número na tela vem de uma tool MCP real ou dos relatórios do modelo.</p>
+                            <ol class="chapters reveal" style="--d:3" id="demoChapters">
+                                <li><button data-t="3"><span class="t">0:03</span>Visão geral</button></li>
+                                <li><button data-t="18"><span class="t">0:18</span>Console MCP</button></li>
+                                <li><button data-t="38"><span class="t">0:38</span>Creative Battle</button></li>
+                                <li><button data-t="58"><span class="t">0:58</span>Modelos e evidências</button></li>
+                                <li><button data-t="78"><span class="t">1:18</span>Traces MCP</button></li>
+                            </ol>
+                        </div>
+                        <div class="card browser reveal scale" style="--d:2">
+                            <div class="bar"><i></i><i></i><i></i><span>127.0.0.1:3000</span><em>MCP ao vivo</em></div>
+                            <video id="demoVideo" src="assets/demo-galaxies.mp4" poster="assets/demo-poster.jpg" muted playsinline preload="auto" aria-label="Demonstração da interface Galaxies"></video>
+                            <div class="demo-progress"><div id="demoProgress"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">Demonstração (1min34s, toca sozinha ao entrar no slide; clique no vídeo para pausar e nos capítulos para pular). Visão geral → Console MCP → Creative Battle → Modelos e evidências → Traces MCP. No Battle, sem modelo promovido o MCP devolve model_not_ready: a tool recusa e explica, não chuta o número.</aside>
+            </section>
+
+            <!-- ============ 13 · DIFICULDADES ============ -->
+            <section class="slide s13" data-section="Dificuldades">
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>13</b>Dificuldades</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px">Limites reais, <span class="grad">respostas de método.</span></h2>
+                    <div class="ltable">
+                        <div class="lhead reveal" style="--d:2"><span class="eyebrow">Limite encontrado</span><span></span><span class="eyebrow">Como respondemos</span></div>
+                        <div class="card lrow reveal" style="--d:2">
+                            <span class="lim">Cotas de Gemini e VLM</span>
+                            <span class="to"><svg width="48" height="22" viewBox="0 0 48 22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11h42M34 3l10 8-10 8"/></svg></span>
+                            <span class="res"><span class="chip">Cache</span><span class="chip">Filas retomáveis</span><span class="chip">Backoff</span></span>
+                        </div>
+                        <div class="card lrow reveal" style="--d:3">
+                            <span class="lim">Sem série pública de views no dia 30</span>
+                            <span class="to"><svg width="48" height="22" viewBox="0 0 48 22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11h42M34 3l10 8-10 8"/></svg></span>
+                            <span class="res"><span class="chip">Proveniência</span></span>
+                        </div>
+                        <div class="card lrow reveal" style="--d:4">
+                            <span class="lim">Cobertura audiovisual desigual</span>
+                            <span class="to"><svg width="48" height="22" viewBox="0 0 48 22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11h42M34 3l10 8-10 8"/></svg></span>
+                            <span class="res"><span class="chip">Ausência explícita</span></span>
+                        </div>
+                        <div class="card lrow reveal" style="--d:5">
+                            <span class="lim">Risco de vazamento temporal</span>
+                            <span class="to"><svg width="48" height="22" viewBox="0 0 48 22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11h42M34 3l10 8-10 8"/></svg></span>
+                            <span class="res"><span class="chip">Validação por tempo</span></span>
+                        </div>
+                    </div>
+                    <div class="statement reveal" style="--d:6;position:absolute;left:0;bottom:0"><span class="dot"></span>O método vale mais do que uma métrica alta sem controle.</div>
+                </div>
+                <aside class="notes">“Encontramos limites reais: cotas de Gemini e VLM, falta de série histórica pública de views no dia 30, cobertura audiovisual desigual e risco de vazamento temporal. Nossa resposta foi cache, filas retomáveis, backoff, proveniência, ausência explícita e validação por tempo. O método vale mais do que uma métrica alta sem controle.”</aside>
+            </section>
+
+            <!-- ============ 14 · EVOLUÇÃO ============ -->
+            <section class="slide s14" data-section="Evolução">
+                <div class="glow pink" style="width:560px;height:420px;right:0;top:320px"></div>
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>14</b>Evolução</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px">O próximo salto <span class="grad">vem dos dados.</span></h2>
+                    <div class="road">
+                        <div class="road-line reveal left" style="--d:2"></div>
+                        <div class="stage-col reveal" style="--d:3">
+                            <span class="eyebrow">Hoje</span>
+                            <h4>Base pública</h4>
+                            <span class="dot"></span>
+                            <ul><li>Canais selecionados</li><li>Cobertura audiovisual desigual</li></ul>
+                        </div>
+                        <div class="stage-col reveal" style="--d:4">
+                            <span class="eyebrow" style="color:var(--blue)">Mais dados</span>
+                            <h4>Rótulos comparáveis</h4>
+                            <span class="dot"></span>
+                            <ul><li>Mais canais</li><li>Views no dia 30</li><li>Maior cobertura VLM</li><li>Bases de clientes</li></ul>
+                        </div>
+                        <div class="stage-col reveal" style="--d:5">
+                            <span class="eyebrow" style="color:#B42BC4">Próximo salto</span>
+                            <h4>Especialistas por marca e setor</h4>
+                            <span class="dot"></span>
+                            <ul><li>Intervalos mais calibrados</li><li>Vídeo completo e transcrição segmentada</li><li>Criativos comparáveis</li></ul>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">“O próximo salto depende de mais canais e de rótulos comparáveis no tempo. Com views no dia 30, maior cobertura VLM e bases de clientes, podemos treinar especialistas por marca e setor, calibrar melhor os intervalos e incorporar vídeo completo, transcrição segmentada e criativos comparáveis.”</aside>
+            </section>
+
+            <!-- ============ 15 · FECHAMENTO ============ -->
+            <section class="slide s15" data-section="Fechamento">
+                <div class="glow blue" style="width:700px;height:500px;left:-100px;top:100px"></div>
+                <div class="glow pink" style="width:600px;height:460px;right:-60px;top:40px"></div>
+                <div class="content center-col">
+                    <div class="kicker reveal" style="--d:0"><b>15</b>Fechamento</div>
+                    <h2 class="h-display reveal" style="--d:1">Da opinião da persona a uma <span class="grad">recomendação.</span></h2>
+                    <div class="triad">
+                        <span class="chip reveal" style="--d:2">Mensurável</span>
+                        <span class="chip reveal" style="--d:3">Rastreável</span>
+                        <span class="chip reveal" style="--d:4">Testável</span>
+                    </div>
+                    <div class="takeaways">
+                        <div class="card reveal" style="--d:5"><div class="big">0,588</div><p>AUC geral, acima da referência histórica (0,489)</p></div>
+                        <div class="card blue reveal" style="--d:6"><div class="big grad">0,700</div><p>em Automotivo, o sinal mais forte</p></div>
+                        <div class="card dark reveal" style="--d:7"><div class="big" style="font-size:52px;line-height:64px">MCP</div><p style="color:#C7CBD3">arquitetura pronta para dados de cliente</p></div>
+                    </div>
+                </div>
+                <aside class="notes">“Entregamos uma camada estatística integrada ao ecossistema da Galaxies. Ela transforma a opinião da persona em uma recomendação mensurável, rastreável e testável. O resultado geral já supera a referência, Automotivo mostra um sinal forte, e a arquitetura está pronta para evoluir com dados de cliente.”</aside>
+            </section>
+
+            <!-- ============ 16 · APÊNDICE: PERGUNTAS ============ -->
+            <section class="slide s16" data-section="Apêndice · Perguntas">
+                <div class="content">
+                    <div class="kicker reveal" style="--d:0"><b>Q&amp;A</b>Perguntas frequentes</div>
+                    <h2 class="h-title reveal" style="--d:1;margin-top:30px">Como ler <span class="grad">os números.</span></h2>
+                    <div class="qa">
+                        <div class="card reveal" style="--d:2">
+                            <div class="q">Sobre a métrica</div>
+                            <h3>AUC de 0,588 não é 58,8% de acerto.</h3>
+                            <p>Mede se o modelo ordena um Short viral acima de um não viral dentro do canal. O 0,700 é específico de Automotivo, por isso mostramos intervalos e setores.</p>
+                        </div>
+                        <div class="card reveal" style="--d:3">
+                            <div class="q">Sobre causalidade</div>
+                            <h3>O modelo encontra associação, não causa.</h3>
+                            <p>Para afirmar que uma mudança causou o resultado, a marca testa variantes controladas. O Creative Battle serve para priorizar esse teste.</p>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">Métrica: “AUC de 0,588 não significa 58,8% de acerto. Ela mede se o modelo ordena um Short viral acima de um não viral dentro do canal. O número de 0,700 é específico de Automotivo. Por isso mostramos os intervalos e os resultados por setor.” · Causalidade: “O modelo encontra padrões associados ao desempenho observado. Para afirmar que uma mudança causou o resultado, a marca precisa testar variantes controladas depois da recomendação. O Creative Battle serve exatamente para priorizar esse teste.”</aside>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Controles e notas (fora do palco, não escalam) -->
+    <nav class="deck-controls" aria-label="Navegação">
+        <button id="prevBtn" aria-label="Slide anterior">←</button>
+        <button id="notesBtn" aria-label="Notas do apresentador (N)" title="Notas (N)">N</button>
+        <button id="fsBtn" aria-label="Tela cheia (F)" title="Tela cheia (F)">⤢</button>
+        <button id="nextBtn" aria-label="Próximo slide">→</button>
+    </nav>
+    <div class="notes-panel" id="notesPanel" role="note"></div>
+
+    <div class="edit-hotzone"></div>
+    <button class="edit-toggle" id="editToggle" title="Modo de edição (E)">Editar</button>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           Setas, espaço, PageUp/Down, roda do mouse, swipe, #hash
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = [...document.querySelectorAll('.slide')];
+                this.stage = document.getElementById('deckStage');
+                this.current = 0;
+                this.wheelLock = false;
+                this.setupStageScale();
+                this.setupKeyboardNav();
+                this.setupWheelNav();
+                this.setupTouchNav();
+                this.setupButtons();
+                const fromHash = () => parseInt(location.hash.slice(1), 10);
+                window.addEventListener('hashchange', () => { const n = fromHash(); if (Number.isFinite(n) && n - 1 !== this.current) this.show(n - 1); });
+                this.show(Number.isFinite(fromHash()) ? fromHash() - 1 : 0);
+            }
+
+            setupStageScale() {
+                const scale = () => {
+                    const f = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+                    const x = (window.innerWidth - 1920 * f) / 2;
+                    const y = (window.innerHeight - 1080 * f) / 2;
+                    this.stage.style.transform = `translate(${x}px, ${y}px) scale(${f})`;
+                };
+                scale();
+                window.addEventListener('resize', scale);
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (editor.isActive) return;
+                    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); this.next(); }
+                    else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); this.prev(); }
+                    else if (e.key === 'Home') this.show(0);
+                    else if (e.key === 'End') this.show(this.slides.length - 1);
+                    else if (e.key === 'n' || e.key === 'N') notes.toggle();
+                    else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+                });
+            }
+
+            setupWheelNav() {
+                window.addEventListener('wheel', (e) => {
+                    if (editor.isActive || this.wheelLock || Math.abs(e.deltaY) < 30) return;
+                    this.wheelLock = true;
+                    e.deltaY > 0 ? this.next() : this.prev();
+                    setTimeout(() => (this.wheelLock = false), 700);
+                }, { passive: true });
+            }
+
+            setupTouchNav() {
+                let sx = 0, sy = 0;
+                window.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+                window.addEventListener('touchend', (e) => {
+                    const dx = e.changedTouches[0].clientX - sx;
+                    const dy = e.changedTouches[0].clientY - sy;
+                    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) dx < 0 ? this.next() : this.prev();
+                }, { passive: true });
+            }
+
+            setupButtons() {
+                document.getElementById('prevBtn').addEventListener('click', () => this.prev());
+                document.getElementById('nextBtn').addEventListener('click', () => this.next());
+                document.getElementById('notesBtn').addEventListener('click', () => notes.toggle());
+                document.getElementById('fsBtn').addEventListener('click', toggleFullscreen);
+            }
+
+            next() { this.show(this.current + 1); }
+            prev() { this.show(this.current - 1); }
+
+            show(index) {
+                this.current = Math.max(0, Math.min(index, this.slides.length - 1));
+                this.slides.forEach((s, i) => {
+                    const on = i === this.current;
+                    s.classList.toggle('active', on);
+                    s.classList.toggle('visible', on);
+                });
+                const slide = this.slides[this.current];
+                const total = this.slides.length;
+                const pad = (n) => String(n).padStart(2, '0');
+                document.getElementById('chromePage').textContent = `${pad(this.current + 1)} / ${pad(total)}`;
+                document.getElementById('chromeSection').textContent = slide.dataset.section || '';
+                document.getElementById('progress').style.width = `${((this.current + 1) / total) * 100}%`;
+                history.replaceState(null, '', `#${this.current + 1}`);
+                runCounters(slide);
+                syncDemo(slide);
+                notes.render(slide);
+            }
+        }
+
+        /* ===========================================
+           DEMO — toca ao entrar no slide, pausa ao sair;
+           clique no vídeo pausa/retoma, capítulos pulam
+           =========================================== */
+        function syncDemo(slide) {
+            const video = document.getElementById('demoVideo');
+            if (!video) return;
+            if (slide.contains(video)) {
+                video.play().catch(() => {});
+            } else if (!video.paused) {
+                video.pause();
+            }
+        }
+
+        (function setupDemo() {
+            const video = document.getElementById('demoVideo');
+            if (!video) return;
+            const buttons = [...document.querySelectorAll('#demoChapters button')];
+            const bar = document.getElementById('demoProgress');
+            video.addEventListener('click', () => (video.paused ? video.play() : video.pause()));
+            video.addEventListener('dblclick', () => video.requestFullscreen?.());
+            buttons.forEach((b) => b.addEventListener('click', () => {
+                video.currentTime = parseFloat(b.dataset.t);
+                video.play().catch(() => {});
+            }));
+            video.addEventListener('timeupdate', () => {
+                const t = video.currentTime;
+                if (video.duration) bar.style.width = `${(t / video.duration) * 100}%`;
+                let on = -1;
+                buttons.forEach((b, i) => { if (t >= parseFloat(b.dataset.t) - 0.2) on = i; });
+                buttons.forEach((b, i) => b.classList.toggle('on', i === on));
+            });
+        })();
+
+        /* ===========================================
+           CONTADORES — números animados (formato pt-BR)
+           =========================================== */
+        function runCounters(slide) {
+            slide.querySelectorAll('[data-count]').forEach((el) => {
+                const target = parseFloat(el.dataset.count);
+                const dec = parseInt(el.dataset.dec || '0', 10);
+                const suffix = el.dataset.suffix || '';
+                const fmt = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + suffix;
+                const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (reduce) { el.textContent = fmt(target); return; }
+                const start = performance.now();
+                const dur = 1400;
+                const tick = (t) => {
+                    const p = Math.min(1, (t - start) / dur);
+                    const eased = 1 - Math.pow(1 - p, 4);
+                    el.textContent = fmt(target * eased);
+                    if (p < 1 && slide.classList.contains('visible')) requestAnimationFrame(tick);
+                    else el.textContent = fmt(target);
+                };
+                setTimeout(() => requestAnimationFrame(tick), 300);
+            });
+        }
+
+        /* ===========================================
+           GRÁFICO DO SLIDE 08 — ilustração da regra de viral
+           (alturas ilustrativas; a regra é que importa)
+           =========================================== */
+        function buildViralChart() {
+            const bars = document.getElementById('bars8');
+            const heights = [];
+            let seed = 7;
+            const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+            for (let i = 0; i < 30; i++) heights.push(Math.round(38 + rnd() * 62));
+            heights.forEach((h, i) => {
+                const b = document.createElement('span');
+                b.style.height = `${h}px`;
+                b.style.transitionDelay = `${300 + i * 22}ms`;
+                bars.appendChild(b);
+            });
+            const sorted = [...heights].sort((a, b) => a - b);
+            const median = (sorted[14] + sorted[15]) / 2;
+            const base = 96; // distância do fundo do card até a base das barras
+            document.getElementById('median8').style.bottom = `${base + median}px`;
+            document.getElementById('x3line8').style.bottom = `${base + median * 3}px`;
+            const newH = Math.round(median * 3 + 42);
+            const nb = document.getElementById('newbar8');
+            nb.dataset.h = newH;
+            document.getElementById('newbarLabel8').style.bottom = `${base + newH + 12}px`;
+        }
+
+        // A barra nova cresce só quando o slide 08 aparece
+        const observer = new MutationObserver(() => {
+            const s8 = document.querySelector('.s8');
+            const nb = document.getElementById('newbar8');
+            nb.style.height = s8.classList.contains('visible') ? `${nb.dataset.h}px` : '0px';
+        });
+
+        /* ===========================================
+           NOTAS DO APRESENTADOR (tecla N)
+           =========================================== */
+        const notes = {
+            panel: document.getElementById('notesPanel'),
+            open: false,
+            toggle() { this.open = !this.open; this.panel.classList.toggle('show', this.open); },
+            render(slide) {
+                const n = slide.querySelector('.notes');
+                this.panel.innerHTML = `<b>Roteiro · ${slide.dataset.section || ''}</b>${n ? n.innerHTML : ''}`;
+            }
+        };
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+
+        /* ===========================================
+           EDIÇÃO INLINE — E ou canto superior esquerdo
+           Salva no navegador (localStorage); Ctrl+S baixa o HTML
+           =========================================== */
+        const STORE_KEY = 'galaxies-predictive-deck-v1';
+        const editor = {
+            isActive: false,
+            selector: '.slide h1, .slide h2, .slide h3, .slide h4, .slide p, .slide .chip, .slide .kicker, .slide li, .slide .eyebrow, .slide .bubble, .slide .num, .slide .big',
+            toggleEditMode() {
+                this.isActive = !this.isActive;
+                document.body.classList.toggle('editing', this.isActive);
+                document.querySelectorAll(this.selector).forEach((el) => {
+                    if (this.isActive) el.setAttribute('contenteditable', 'true');
+                    else el.removeAttribute('contenteditable');
+                });
+                const btn = document.getElementById('editToggle');
+                btn.classList.toggle('active', this.isActive);
+                btn.textContent = this.isActive ? 'Salvar e sair' : 'Editar';
+                if (!this.isActive) this.save();
+            },
+            save() {
+                try {
+                    const data = [...document.querySelectorAll(this.selector)].map((el) => el.innerHTML);
+                    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+                } catch (e) { /* armazenamento indisponível: ignora */ }
+            },
+            restore() {
+                try {
+                    const raw = localStorage.getItem(STORE_KEY);
+                    if (!raw) return;
+                    const data = JSON.parse(raw);
+                    const els = document.querySelectorAll(this.selector);
+                    if (data.length !== els.length) return;
+                    els.forEach((el, i) => { if (!el.hasAttribute('data-count')) el.innerHTML = data[i]; });
+                } catch (e) { /* ignora */ }
+            },
+            download() {
+                const clone = document.documentElement.cloneNode(true);
+                clone.querySelectorAll('[contenteditable]').forEach((el) => el.removeAttribute('contenteditable'));
+                clone.querySelector('body').classList.remove('editing');
+                const blob = new Blob(['<!DOCTYPE html>\n' + clone.outerHTML], { type: 'text/html' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'index.html';
+                a.click();
+            }
+        };
+
+        (function setupEditor() {
+            const hotzone = document.querySelector('.edit-hotzone');
+            const toggle = document.getElementById('editToggle');
+            let hideTimeout = null;
+            const hideLater = () => { hideTimeout = setTimeout(() => { if (!editor.isActive) toggle.classList.remove('show'); }, 400); };
+            toggle.addEventListener('click', () => editor.toggleEditMode());
+            hotzone.addEventListener('click', () => editor.toggleEditMode());
+            hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); toggle.classList.add('show'); });
+            hotzone.addEventListener('mouseleave', hideLater);
+            toggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+            toggle.addEventListener('mouseleave', hideLater);
+            document.addEventListener('keydown', (e) => {
+                if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) editor.toggleEditMode();
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); editor.save(); editor.download(); }
+                if (e.key === 'Escape' && editor.isActive) editor.toggleEditMode();
+            });
+            editor.restore();
+        })();
+
+        /* ===========================================
+           INIT
+           =========================================== */
+        buildViralChart();
+        document.querySelectorAll('.slide').forEach((s) => observer.observe(s, { attributes: true, attributeFilter: ['class'] }));
+        const deck = new SlidePresentation();
+    </script>
+</body>
+</html>
