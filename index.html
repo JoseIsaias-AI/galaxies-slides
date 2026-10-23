@@ -1026,8 +1026,8 @@
         /* ===========================================
            CONTROLES (fora do palco)
            =========================================== */
-        .deck-controls { display: flex; gap: 8px; opacity: 0; transition: opacity 0.3s ease; }
-        body:hover .deck-controls { opacity: 1; }
+        /* A navegação acontece pelo teclado; botões não entram na projeção. */
+        .deck-controls { display: none !important; }
         .deck-controls button {
             width: 40px; height: 40px; border-radius: 12px;
             border: 1px solid #E5E7EB; background: rgba(255, 255, 255, 0.92);
