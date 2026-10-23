@@ -1052,6 +1052,18 @@
         .edit-toggle.active { background: var(--blue); color: #fff; border-color: var(--blue); }
         body.editing [contenteditable="true"] { outline: 2px dashed rgba(0, 101, 255, 0.35); outline-offset: 4px; border-radius: 6px; }
         body.editing [contenteditable="true"]:focus { outline-color: var(--blue); }
+
+        /* Durante a apresentação, nenhuma ferramenta de edição fica visível. */
+        :fullscreen .deck-controls,
+        :fullscreen .notes-panel,
+        :fullscreen .edit-hotzone,
+        :fullscreen .edit-toggle,
+        :-webkit-full-screen .deck-controls,
+        :-webkit-full-screen .notes-panel,
+        :-webkit-full-screen .edit-hotzone,
+        :-webkit-full-screen .edit-toggle {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
